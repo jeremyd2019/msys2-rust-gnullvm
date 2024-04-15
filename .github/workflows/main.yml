@@ -1,0 +1,103 @@
+name: main
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        msystem: [CLANG64, CLANG32]
+    name: ${{ matrix.msystem }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: jeremyd2019/MINGW-packages
+          ref: rust-gnullvm-1
+          depth: 0
+          path: temp
+          persist-credentials: false
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          install: base-devel
+          update: true
+          release: true
+          location: 'D:\M'
+
+      - name: Move Checkout
+        run: |
+          If (Test-Path "C:\_") { rm -r -fo "C:\_" }
+          Copy-Item -Path ".\temp" -Destination "C:\_" -Recurse
+
+      - name: Fetch keys
+        shell: msys2 {0}
+        run: |
+          cd /c/_/mingw-w64-rust
+          ../.ci/fetch-validpgpkeys.sh
+
+      - name: build host -gnu, target -gnu,-gnullvm
+        shell: msys2 {0}
+        run: |
+          unset VCPKG_ROOT
+          cd /c/_
+          mv mingw-w64-rust B
+          cd B
+          makepkg-mingw --noconfirm --noprogressbar --nocheck --syncdeps --rmdeps --cleanbuild
+          pacman -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+
+      - name: Clean git and checkout gnullvm-2
+        shell: bash
+        run: |
+          cd /c/_
+          rm -rf B
+          git clean -dxxf .
+          git reset --hard
+          git checkout rust-gnullvm-2
+
+      - name: build host/target -gnullvm, llvm cross hack
+        shell: msys2 {0}
+        run: |
+          unset VCPKG_ROOT
+          cd /c/_
+          mv mingw-w64-rust B
+          cd B
+          makepkg-mingw --noconfirm --noprogressbar --nocheck --syncdeps --rmdeps --cleanbuild
+          pacman -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+
+      - name: Clean git and checkout gnullvm-3
+        shell: bash
+        run: |
+          cd /c/_
+          rm -rf B
+          git clean -dxxf .
+          git reset --hard
+          git checkout rust-gnullvm-3
+
+      - name: build host/target -gnullvm
+        shell: msys2 {0}
+        run: |
+          unset VCPKG_ROOT
+          cd /c/_
+          mv mingw-w64-rust B
+          cd B
+          awk -i inplace -F= -v OFS== '$1=="pkgrel" {$2++} 1' PKGBUILD
+          makepkg-mingw --noconfirm --noprogressbar --nocheck --syncdeps --rmdeps --cleanbuild
+          pacman -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+          mkdir /c/artifacts
+          mv *.pkg.tar.* /c/artifacts
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.msystem }}-packages
+          path: C:/artifacts/*.pkg.tar.*
+          if-no-files-found: ignore
+
+      - name: "Clean up runner"
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          If (Test-Path "C:\_") { rm -r -fo "C:\_" }
