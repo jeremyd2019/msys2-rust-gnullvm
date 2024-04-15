@@ -15,7 +15,7 @@ jobs:
         with:
           repository: jeremyd2019/MINGW-packages
           ref: rust-gnullvm-1
-          depth: 0
+          fetch-depth: 0
           path: temp
           persist-credentials: false
 
