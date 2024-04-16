@@ -1,0 +1,42 @@
+From 5a9f918147ca7b432aee2b99ff4096e74daa8526 Mon Sep 17 00:00:00 2001
+From: Jeremy Drake <github@jdrake.com>
+Date: Thu, 11 Jan 2024 17:56:27 -0800
+Subject: [PATCH] rust: build gnu and gnullvm targets for clang
+
+---
+ mingw-w64-rust/PKGBUILD | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/mingw-w64-rust/PKGBUILD b/mingw-w64-rust/PKGBUILD
+index b0619bbd7..3d336c4ed 100644
+--- a/mingw-w64-rust/PKGBUILD
++++ b/mingw-w64-rust/PKGBUILD
+@@ -4,7 +4,7 @@
+ # Contributor: Philippe Renon <philippe_renon@yahoo.fr>
+ 
+ _bootstrapping=yes
+-if [[ $MINGW_PACKAGE_PREFIX == *-clang-aarch64 ]]; then
++if [[ $MINGW_PACKAGE_PREFIX == *-clang-* ]]; then
+   _bootstrapping=no
+ fi
+ 
+@@ -160,6 +160,7 @@ build() {
+ 
+     # Otherwise it uses gcc during bootstrap, even when we build for clang
+     export CARGO_TARGET_${CARCH^^}_PC_WINDOWS_GNU_LINKER="${CC}"
++    export CARGO_TARGET_${CARCH^^}_PC_WINDOWS_GNULLVM_LINKER="${CC}"
+   fi
+ 
+   local -a _rust_conf=()
+@@ -191,7 +192,7 @@ build() {
+     --localstatedir=${MINGW_PREFIX}/var/lib \
+     --build=$OSTYPE \
+     --host=$OSTYPE \
+-    --target=$OSTYPE \
++    --target=$OSTYPE,${OSTYPE}llvm \
+     --release-channel=stable \
+     --release-description="Rev${pkgrel}, Built by MSYS2 project" \
+     --enable-ninja \
+-- 
+2.44.0.windows.1
+
