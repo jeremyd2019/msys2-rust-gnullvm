@@ -46,7 +46,9 @@ jobs:
           mv mingw-w64-rust B
           cd B
           makepkg-mingw --noconfirm --noprogressbar --nocheck --syncdeps --rmdeps --cleanbuild
-          pacman -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+          pacman --noconfirm --noprogressbar -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+          mkdir -p /c/artifacts/1
+          mv -f *.pkg.tar.* /c/artifacts/1
 
       - name: Clean git and checkout gnullvm-2
         shell: bash
@@ -65,7 +67,9 @@ jobs:
           mv mingw-w64-rust B
           cd B
           makepkg-mingw --noconfirm --noprogressbar --nocheck --syncdeps --rmdeps --cleanbuild
-          pacman -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+          pacman --noconfirm --noprogressbar -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+          mkdir -p /c/artifacts/2
+          mv -f *.pkg.tar.* /c/artifacts/2
 
       - name: Clean git and checkout gnullvm-3
         shell: bash
@@ -85,15 +89,15 @@ jobs:
           cd B
           awk -i inplace -F= -v OFS== '$1=="pkgrel" {$2++} 1' PKGBUILD
           makepkg-mingw --noconfirm --noprogressbar --nocheck --syncdeps --rmdeps --cleanbuild
-          pacman -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
-          mkdir /c/artifacts
-          mv *.pkg.tar.* /c/artifacts
+          pacman --noconfirm --noprogressbar -U ${MINGW_PACKAGE_PREFIX}-rust-*.pkg.tar.*
+          mkdir -p /c/artifacts/3
+          mv -f *.pkg.tar.* /c/artifacts/3
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.msystem }}-packages
-          path: C:/artifacts/*.pkg.tar.*
+          path: C:/artifacts/
           if-no-files-found: ignore
 
       - name: "Clean up runner"
