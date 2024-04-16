@@ -106,3 +106,19 @@ jobs:
         continue-on-error: true
         run: |
           If (Test-Path "C:\_") { rm -r -fo "C:\_" }
+
+  release:
+    permissions:
+      contents: write
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          ver="$(tar -xOf CLANG64-packages/3/mingw-w64-clang-x86_64-rust-[^d]*.pkg.tar.* .PKGINFO | sed -ne '/^pkgver = /s///p')"
+          gh release create "${ver}" --title "${ver}" --notes "" -R ${{ github.repository }} CLANG*-packages/3/*
