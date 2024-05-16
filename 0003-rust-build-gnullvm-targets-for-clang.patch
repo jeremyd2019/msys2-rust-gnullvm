@@ -1,185 +1,14 @@
-From c85120b7da170d718943b5ff914fcca1d52c6653 Mon Sep 17 00:00:00 2001
+From 1d087dfcea16cde51b103bfdc7b1303b14eb3c11 Mon Sep 17 00:00:00 2001
 From: Jeremy Drake <github@jdrake.com>
 Date: Thu, 11 Jan 2024 17:56:27 -0800
 Subject: [PATCH] rust: build gnullvm targets for clang
 
 ---
- mingw-w64-rust/0007-clang-subsystem.patch | 163 ----------------------
- mingw-w64-rust/PKGBUILD                   |  10 +-
- 2 files changed, 2 insertions(+), 171 deletions(-)
- delete mode 100644 mingw-w64-rust/0007-clang-subsystem.patch
+ mingw-w64-rust/PKGBUILD | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
 
-diff --git a/mingw-w64-rust/0007-clang-subsystem.patch b/mingw-w64-rust/0007-clang-subsystem.patch
-deleted file mode 100644
-index fead5070b..000000000
---- a/mingw-w64-rust/0007-clang-subsystem.patch
-+++ /dev/null
-@@ -1,163 +0,0 @@
--diff -urN rustc-1.65.0-src.orig/compiler/rustc_target/src/spec/crt_objects.rs rustc-1.65.0-src/compiler/rustc_target/src/spec/crt_objects.rs
----- rustc-1.65.0-src.orig/compiler/rustc_target/src/spec/crt_objects.rs	2022-11-02 15:36:24.000000000 +0100
--+++ rustc-1.65.0-src/compiler/rustc_target/src/spec/crt_objects.rs	2022-11-09 22:12:19.171603900 +0100
--@@ -52,17 +52,6 @@
--     obj_table.iter().map(|(z, k)| (*z, k.iter().map(|b| (*b).into()).collect())).collect()
-- }
-- 
---pub(super) fn all(obj: &'static str) -> CrtObjects {
---    new(&[
---        (LinkOutputKind::DynamicNoPicExe, &[obj]),
---        (LinkOutputKind::DynamicPicExe, &[obj]),
---        (LinkOutputKind::StaticNoPicExe, &[obj]),
---        (LinkOutputKind::StaticPicExe, &[obj]),
---        (LinkOutputKind::DynamicDylib, &[obj]),
---        (LinkOutputKind::StaticDylib, &[obj]),
---    ])
---}
---
-- pub(super) fn pre_musl_self_contained() -> CrtObjects {
--     new(&[
--         (LinkOutputKind::DynamicNoPicExe, &["crt1.o", "crti.o", "crtbegin.o"]),
--@@ -87,25 +76,25 @@
-- 
-- pub(super) fn pre_mingw_self_contained() -> CrtObjects {
--     new(&[
---        (LinkOutputKind::DynamicNoPicExe, &["crt2.o", "rsbegin.o"]),
---        (LinkOutputKind::DynamicPicExe, &["crt2.o", "rsbegin.o"]),
---        (LinkOutputKind::StaticNoPicExe, &["crt2.o", "rsbegin.o"]),
---        (LinkOutputKind::StaticPicExe, &["crt2.o", "rsbegin.o"]),
---        (LinkOutputKind::DynamicDylib, &["dllcrt2.o", "rsbegin.o"]),
---        (LinkOutputKind::StaticDylib, &["dllcrt2.o", "rsbegin.o"]),
--+        (LinkOutputKind::DynamicNoPicExe, &["crt2.o"]),
--+        (LinkOutputKind::DynamicPicExe, &["crt2.o"]),
--+        (LinkOutputKind::StaticNoPicExe, &["crt2.o"]),
--+        (LinkOutputKind::StaticPicExe, &["crt2.o"]),
--+        (LinkOutputKind::DynamicDylib, &["dllcrt2.o"]),
--+        (LinkOutputKind::StaticDylib, &["dllcrt2.o"]),
--     ])
-- }
-- 
-- pub(super) fn post_mingw_self_contained() -> CrtObjects {
---    all("rsend.o")
--+    CrtObjects::new()
-- }
-- 
-- pub(super) fn pre_mingw() -> CrtObjects {
---    all("rsbegin.o")
--+    CrtObjects::new()
-- }
-- 
-- pub(super) fn post_mingw() -> CrtObjects {
---    all("rsend.o")
--+    CrtObjects::new()
-- }
-- 
-- pub(super) fn pre_wasi_self_contained() -> CrtObjects {
--diff -urN rustc-1.65.0-src.orig/compiler/rustc_target/src/spec/i686_pc_windows_gnu.rs rustc-1.65.0-src/compiler/rustc_target/src/spec/i686_pc_windows_gnu.rs
----- rustc-1.65.0-src.orig/compiler/rustc_target/src/spec/targets/i686_pc_windows_gnu.rs	2022-11-09 21:53:40.404728900 +0100
--+++ rustc-1.65.0-src/compiler/rustc_target/src/spec/targets/i686_pc_windows_gnu.rs	2022-11-09 22:07:46.188364200 +0100
--@@ -5,7 +5,7 @@
--     base.cpu = "pentium4".into();
--     base.max_atomic_width = Some(64);
--     base.frame_pointer = FramePointer::Always; // Required for backtraces
---    base.linker = Some("i686-w64-mingw32-gcc".into());
--+    base.linker = Some("i686-w64-mingw32-clang".into());
-- 
--     // Mark all dynamic libraries and executables as compatible with the larger 4GiB address
--     // space available to x86 Windows binaries on x86_64.
--$ diff -urN rustc-1.75.0-src/compiler/rustc_target/src/spec/base/windows_gnu.rs.orig rustc-1.75.0-src/compiler/rustc_target/src/spec/base/windows_gnu.rs
----- rustc-1.75.0-src/compiler/rustc_target/src/spec/base/windows_gnu.rs.orig    2023-12-21 17:55:28.000000000 +0100
--+++ rustc-1.75.0-src/compiler/rustc_target/src/spec/base/windows_gnu.rs 2023-12-22 17:29:48.415890500 +0100
--@@ -27,29 +27,14 @@
--
--     // Order of `late_link_args*` was found through trial and error to work with various
--     // mingw-w64 versions (not tested on the CI). It's expected to change from time to time.
---    let mingw_libs = &[
---        "-lmsvcrt",
---        "-lmingwex",
---        "-lmingw32",
---        "-lgcc", // alas, mingw* libraries above depend on libgcc
---        // mingw's msvcrt is a weird hybrid import library and static library.
---        // And it seems that the linker fails to use import symbols from msvcrt
---        // that are required from functions in msvcrt in certain cases. For example
---        // `_fmode` that is used by an implementation of `__p__fmode` in x86_64.
---        // The library is purposely listed twice to fix that.
---        //
---        // See https://github.com/rust-lang/rust/pull/47483 for some more details.
---        "-lmsvcrt",
---        "-luser32",
---        "-lkernel32",
---    ];
--+    let mingw_libs = &[];
--     let mut late_link_args =
--         TargetOptions::link_args(LinkerFlavor::Gnu(Cc::No, Lld::No), mingw_libs);
--     add_link_args(&mut late_link_args, LinkerFlavor::Gnu(Cc::Yes, Lld::No), mingw_libs);
--     // If any of our crates are dynamically linked then we need to use
--     // the shared libgcc_s-dw2-1.dll. This is required to support
--     // unwinding across DLL boundaries.
---    let dynamic_unwind_libs = &["-lgcc_s"];
--+    let dynamic_unwind_libs = &["-l:libunwind.dll.a"];
--     let mut late_link_args_dynamic =
--         TargetOptions::link_args(LinkerFlavor::Gnu(Cc::No, Lld::No), dynamic_unwind_libs);
--     add_link_args(
--@@ -62,7 +47,7 @@
--     // binaries to be redistributed without the libgcc_s-dw2-1.dll
--     // dependency, but unfortunately break unwinding across DLL
--     // boundaries when unwinding across FFI boundaries.
---    let static_unwind_libs = &["-lgcc_eh", "-l:libpthread.a"];
--+    let static_unwind_libs = &["-l:libunwind.a"];
--     let mut late_link_args_static =
--         TargetOptions::link_args(LinkerFlavor::Gnu(Cc::No, Lld::No), static_unwind_libs);
--     add_link_args(
--@@ -76,7 +61,8 @@
--         env: "gnu".into(),
--         vendor: "pc".into(),
--         // FIXME(#13846) this should be enabled for windows
---        function_sections: false,
--+        function_sections: true,
--+        no_default_libraries: false,
--         linker: Some("gcc".into()),
--         dynamic_linking: true,
--         dll_tls_export: false,
--diff -urN rustc-1.65.0-src.orig/compiler/rustc_target/src/spec/x86_64_pc_windows_gnu.rs rustc-1.65.0-src/compiler/rustc_target/src/spec/x86_64_pc_windows_gnu.rs
----- rustc-1.65.0-src.orig/compiler/rustc_target/src/spec/targets/x86_64_pc_windows_gnu.rs	2022-11-09 21:53:40.408733200 +0100
--+++ rustc-1.65.0-src/compiler/rustc_target/src/spec/targets/x86_64_pc_windows_gnu.rs	2022-11-09 22:07:46.192364800 +0100
--@@ -7,7 +7,7 @@
--     base.add_pre_link_args(LinkerFlavor::Ld, &["-m", "i386pep", "--high-entropy-va"]);
--     base.add_pre_link_args(LinkerFlavor::Gcc, &["-m64", "-Wl,--high-entropy-va"]);
--     base.max_atomic_width = Some(64);
---    base.linker = Some("x86_64-w64-mingw32-gcc".into());
--+    base.linker = Some("x86_64-w64-mingw32-clang".into());
-- 
--     Target {
--         llvm_target: "x86_64-pc-windows-gnu".into(),
--diff -urN rustc-1.76.0-src/src/bootstrap/bootstrap.py.orig rustc-1.76.0-src/src/bootstrap/bootstrap.py
----- rustc-1.76.0-src/src/bootstrap/bootstrap.py.orig    2024-02-05 22:14:29.622617100 +0100
--+++ rustc-1.76.0-src/src/bootstrap/bootstrap.py 2024-02-05 22:21:11.207527500 +0100
--@@ -616,6 +616,13 @@
--             with output(self.rustc_stamp()) as rust_stamp:
--                 rust_stamp.write(key)
--
--+            gcc_libs_hack = os.environ.get('GCC_LIBS_HACK')
--+            gcc_libs_hack_dest = '{}/lib/rustlib/{}/lib'.format(bin_root, self.build)
--+            shutil.copy(gcc_libs_hack + '/libgcc.a', gcc_libs_hack_dest)
--+            shutil.copy(gcc_libs_hack + '/libgcc_eh.a', gcc_libs_hack_dest)
--+            shutil.copy(gcc_libs_hack + '/libgcc_s.a', gcc_libs_hack_dest)
--+
--+
--     def should_fix_bins_and_dylibs(self):
--         """Whether or not `fix_bin_or_dylib` needs to be run; can only be True
--         on NixOS or if config.toml has `build.patch-binaries-for-nix` set.
--diff -urN rustc-1.69.0-src/compiler/rustc_codegen_llvm/src/common.rs.orig rustc-1.69.0-src/compiler/rustc_codegen_llvm/src/common.rs
----- rustc-1.69.0-src/compiler/rustc_codegen_llvm/src/common.rs.orig     2023-06-03 18:04:48.695354700 +0200
--+++ rustc-1.69.0-src/compiler/rustc_codegen_llvm/src/common.rs  2023-06-03 18:04:55.208081500 +0200
--@@ -379,7 +379,7 @@
-- }
--
-- pub(crate) fn is_mingw_gnu_toolchain(target: &Target) -> bool {
---    target.vendor == "pc" && target.os == "windows" && target.env == "gnu" && target.abi.is_empty()
--+    false && target.vendor == "pc" && target.os == "windows" && target.env == "gnu" && target.abi.is_empty()
-- }
--
-- pub(crate) fn i686_decorated_name(
 diff --git a/mingw-w64-rust/PKGBUILD b/mingw-w64-rust/PKGBUILD
-index b0619bbd7..f4c4dade9 100644
+index e345a3b97..0486d5983 100644
 --- a/mingw-w64-rust/PKGBUILD
 +++ b/mingw-w64-rust/PKGBUILD
 @@ -4,7 +4,7 @@
@@ -191,23 +20,7 @@ index b0619bbd7..f4c4dade9 100644
    _bootstrapping=no
  fi
  
-@@ -48,7 +48,6 @@ source=("${rust_dist_server}/${_realname}c-${pkgver}-src.tar.gz"{,.asc}
-         "https://github.com/rust-lang/compiler-builtins/commit/67c1c0a71a204c089ddae4aec21ec75aa778c11b.patch"
-         "0001-rustc-llvm-fix-libs.patch"
-         "0005-win32-config.patch"
--        "0007-clang-subsystem.patch"
-         "0008-disable-self-contained.patch"
-         "0011-disable-uac-for-installer.patch"
-         "0012-vendor-embed-manifest.patch"
-@@ -60,7 +59,6 @@ sha256sums=('c61457ef8f596638fddbc7716778b2f6b99ff12513a3b0f13994c3bc521638c3'
-             '1c7be19d408a98fcb94ee77085d34901a30f1fcc1b79bc59d02bc48f655df6eb'
-             '7cb1773c288ffb1c1e751edc49b1890c84bf9c362742bc5225d19d474edb73a0'
-             '7d1c4e49524b835a8eadc961b39f5594b12a522a1e24368999be2c7e85399e4e'
--            '1f668f4aed56060ec74fd53a39da1fbaef69b84de510d955baf349db672a8d15'
-             '7a3b5722ff576b0661f36796f088dee4ce318b5dbc3fdcd65b48972de68a0edf'
-             '761d73328d9695a7a2bd2a10be8225f4a56801fee54cbb51c0841b7f16e2bde6'
-             '358de2f3e54afbe4aefd401725227becf2468763b7686c5d4fed3b71d1e95ce9'
-@@ -106,10 +104,6 @@ prepare() {
+@@ -108,10 +108,6 @@ prepare() {
      0005-win32-config.patch \
      0008-disable-self-contained.patch
  
@@ -218,7 +31,7 @@ index b0619bbd7..f4c4dade9 100644
    if [[ $MINGW_PACKAGE_PREFIX == *-clang-* ]]; then
      apply_patch_with_msg \
        0011-disable-uac-for-installer.patch
-@@ -148,7 +142,7 @@ build() {
+@@ -151,7 +147,7 @@ build() {
        "build/cache/${_stage0date}/"
    fi
  
@@ -228,5 +41,5 @@ index b0619bbd7..f4c4dade9 100644
      OSTYPE="$CARCH-pc-windows-gnullvm"
  
 -- 
-2.44.0.windows.1
+2.45.1.windows.1
 
