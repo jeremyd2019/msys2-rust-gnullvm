@@ -40,6 +40,8 @@ jobs:
         shell: bash
         run: |
           cd /c/_
+          git clean -dxxf .
+          git reset --hard
           git apply -3 $GITHUB_WORKSPACE/0001-rust-build-gnu-and-gnullvm-targets-for-clang.patch
 
       - name: Fetch keys
