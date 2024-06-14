@@ -13,8 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: jeremyd2019/MINGW-packages
-          ref: rust-gnullvm-1
+          persist-credentials: false
+
+      - uses: actions/checkout@v4
+        with:
+          repository: msys2/MINGW-packages
+          ref: master
           fetch-depth: 0
           path: temp
           persist-credentials: false
@@ -31,6 +35,12 @@ jobs:
         run: |
           If (Test-Path "C:\_") { rm -r -fo "C:\_" }
           Copy-Item -Path ".\temp" -Destination "C:\_" -Recurse
+
+      - name: apply gnullvm-1
+        shell: bash
+        run: |
+          cd /c/_
+          git apply -3 $GITHUB_WORKSPACE/0001-rust-build-gnu-and-gnullvm-targets-for-clang.patch
 
       - name: Fetch keys
         shell: msys2 {0}
@@ -50,14 +60,14 @@ jobs:
           mkdir -p /c/artifacts/1
           mv -f *.pkg.tar.* /c/artifacts/1
 
-      - name: Clean git and checkout gnullvm-2
+      - name: Clean git and apply gnullvm-2
         shell: bash
         run: |
           cd /c/_
           rm -rf B
           git clean -dxxf .
           git reset --hard
-          git checkout rust-gnullvm-2
+          git apply -3 $GITHUB_WORKSPACE/0002-rust-build-gnullvm-targets-for-clang.patch
 
       - name: build host/target -gnullvm, llvm cross hack
         shell: msys2 {0}
@@ -71,14 +81,14 @@ jobs:
           mkdir -p /c/artifacts/2
           mv -f *.pkg.tar.* /c/artifacts/2
 
-      - name: Clean git and checkout gnullvm-3
+      - name: Clean git and apply gnullvm-3
         shell: bash
         run: |
           cd /c/_
           rm -rf B
           git clean -dxxf .
           git reset --hard
-          git checkout rust-gnullvm-3
+          git apply -3 $GITHUB_WORKSPACE/0003-rust-build-gnullvm-targets-for-clang.patch
 
       - name: build host/target -gnullvm
         shell: msys2 {0}
