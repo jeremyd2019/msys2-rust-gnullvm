@@ -1,14 +1,15 @@
-From 5a9f918147ca7b432aee2b99ff4096e74daa8526 Mon Sep 17 00:00:00 2001
+From f064714ea28415ee2a6b36feceb2e598a194ed21 Mon Sep 17 00:00:00 2001
 From: Jeremy Drake <github@jdrake.com>
 Date: Thu, 11 Jan 2024 17:56:27 -0800
 Subject: [PATCH] rust: build gnu and gnullvm targets for clang
 
 ---
- mingw-w64-rust/PKGBUILD | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ mingw-w64-rust/PKGBUILD    | 6 ++++--
+ mingw-w64-rust/config.toml | 4 ++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/mingw-w64-rust/PKGBUILD b/mingw-w64-rust/PKGBUILD
-index b0619bbd7..3d336c4ed 100644
+index 8ec6e7d28..15e270df2 100644
 --- a/mingw-w64-rust/PKGBUILD
 +++ b/mingw-w64-rust/PKGBUILD
 @@ -4,7 +4,7 @@
@@ -20,23 +21,53 @@ index b0619bbd7..3d336c4ed 100644
    _bootstrapping=no
  fi
  
-@@ -160,6 +160,7 @@ build() {
+@@ -59,7 +59,7 @@ noextract=(${_realname}c-${pkgver}-src.tar.gz)
+ sha256sums=('6f606c193f230f6b2cae4576f7b24d50f5f9b25dff11dbf9b22f787d3521d672'
+             'SKIP'
+             '24ef6d949c0b5b1940c1d6a7aad78d86012152fb8845a1644bc939350d7b75e2'
+-            '829d72862663cb2002f57aee3471b496137f9093e3330ed8f5db80f37663eaf7'
++            'a6c5ae55a316787a4fbb3f881845c54986869d749e6671339c042d3915da89b7'
+             '7cb1773c288ffb1c1e751edc49b1890c84bf9c362742bc5225d19d474edb73a0'
+             '56882f1a0f1404c10c7726d6cc37444f2b343e72b969badfcb43760f80db0f32'
+             '7d1c4e49524b835a8eadc961b39f5594b12a522a1e24368999be2c7e85399e4e'
+@@ -159,6 +159,7 @@ build() {
  
      # Otherwise it uses gcc during bootstrap, even when we build for clang
      export CARGO_TARGET_${CARCH^^}_PC_WINDOWS_GNU_LINKER="${CC}"
 +    export CARGO_TARGET_${CARCH^^}_PC_WINDOWS_GNULLVM_LINKER="${CC}"
    fi
  
-   local -a _rust_conf=()
-@@ -191,7 +192,7 @@ build() {
-     --localstatedir=${MINGW_PREFIX}/var/lib \
-     --build=$OSTYPE \
-     --host=$OSTYPE \
--    --target=$OSTYPE \
-+    --target=$OSTYPE,${OSTYPE}llvm \
-     --release-channel=stable \
-     --release-description="Rev${pkgrel}, Built by MSYS2 project" \
-     --enable-ninja \
+   # avoid OOMing in some cases
+@@ -171,6 +172,7 @@ build() {
+ 
+     # Add options back for target $OSTYPE
+     export CFLAGS_${OSTYPE//-/_}="$_unsupported_options"
++    export CFLAGS_${OSTYPE//-/_}LLVM="$_unsupported_options"
+   fi
+ 
+   # The rust build uses git if it's available but can't handle cygwin git paths
+diff --git a/mingw-w64-rust/config.toml b/mingw-w64-rust/config.toml
+index f74918f30..7c936ab33 100644
+--- a/mingw-w64-rust/config.toml
++++ b/mingw-w64-rust/config.toml
+@@ -13,6 +13,7 @@ build = "%OSTYPE%"
+ host = ["%OSTYPE%"]
+ target = [
+   "%OSTYPE%",
++  "%OSTYPE%llvm",
+ ]
+ python = "%PREFIX%/bin/python.exe"
+ locked-deps = true
+@@ -53,6 +54,9 @@ include-mingw-linker = false
+ [target.%OSTYPE%]
+ llvm-config = "%PREFIX%/bin/llvm-config.exe"
+ 
++[target.%OSTYPE%llvm]
++llvm-config = "%PREFIX%/bin/llvm-config.exe"
++
+ [target.wasm32-unknown-unknown]
+ sanitizers = false
+ profiler = false
 -- 
-2.44.0.windows.1
+2.46.0.windows.1
 
